@@ -30,6 +30,8 @@ void setup() {
   pinMode(relay1, OUTPUT);
   pinMode(relay1, HIGH);
 
+  //setup tombol realtime aplikasi
+    SetupRelayAplikasi();
   
   Serial.begin(115200);
 
@@ -120,4 +122,11 @@ String TangkapNilaiSensor(float sensor){
    dtostrf(sensor,1,2,Var);
    String hasil = String(Var);
    return hasil;
+}
+
+void SetupRelayAplikasi(){
+  KirimSocket("resTemp","false");
+  KirimSocket("resHum","false");
+  KirimSocket("resTds","false");
+  KirimSocket("resTds","false");
 }
