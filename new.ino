@@ -8,28 +8,26 @@ SocketIoClient socket;
 String id = "1471984882";
 bool IsConnect = false;
 
-
-
 //Variable kalibrasi
 float currWl = 0.0;
 int nilaiToleransiWl = 12;
 
 //Variable automatisasi
-bool Mode_Prototype = false;
+bool Mode_Prototype = true;
 bool RelayStatus1 = false;
+int modesekarang = 1;
+
 bool RelayStatus2 = false;
-int NilaiWl = 28;
+int NilaiWl = 30;
 int NilaiTemp = 27;
-
-
 
 //define your sensors here
 #define DHTTYPE DHT11
-#define trigPin 14 // D5
-#define echoPin 12 // D6
-#define dhtPin 4   // D2
-#define relay1 (0) // D3
-#define relay2 (2) // D4
+#define trigPin  D5
+#define echoPin  D6
+#define dhtPin  D2
+#define relay1 D3
+#define relay2 D1
 #define TdsSensorPin A0
 #define VREF 5.0  // analog reference voltage(Volt) of the ADC
 #define SCOUNT 30 // sum of sample point
@@ -54,7 +52,6 @@ int port = 4000;
 
 void setup()
 {
-
   //setup pins and sensor
   //  pinMode(relay1, OUTPUT);
   //  pinMode(relay1, LOW);
@@ -86,61 +83,24 @@ void setup()
   Serial.println("");
 
   socket.begin(SocketServer, port);
-
+//   RelayStatus1 = false;
+//   RelayStatus2 = false;
   //listener for socket io start
 
   socket.on("connect", konek);
   socket.on("rwl", RelayWl);
-  socket.on("rtds", RelayTds);
   socket.on("rtemp", RelayTemp);
-  socket.on("rhum", RelayHum);
   socket.on("UbahMode",GantiMode);
+  socket.on("NilaiWl", GantiNilaiWl);
+  socket.on("NilaiTemp", GantiNilaiTemp);
   socket.on("disconnect", diskonek);
 
   //listener for socket io end
+if(!RelayStatus1){
+  Serial.println("Relay 1 False");
+}
 }
 
-
-
-//function automatisasi
-void automatisasi(float nilaiWl, float nilaiTemp)
-{
-  if (!Mode_Prototype)
-  {
-    if (nilaiWl <= NilaiWl)
-    {
-      if (!RelayStatus1)
-      {
-        JalankanRelay("true", "resWl", relay1);
-        RelayStatus1 = true;
-      }
-    }
-    else if (nilaiWl > NilaiWl)
-    {
-      if (RelayStatus1)
-      {
-        JalankanRelay("false", "resWl", relay1);
-        RelayStatus1 = false;
-      }
-    }
-    else if (nilaiTemp>=NilaiTemp)
-    {
-       if (!RelayStatus2)
-      {
-        JalankanRelay("true", "resTemp", relay2);
-        RelayStatus2 = true;
-      }
-    }
-      else if (nilaiTemp<NilaiTemp)
-    {
-       if (RelayStatus2)
-      {
-        JalankanRelay("false", "resTemp", relay2);
-        RelayStatus2 = false;
-      }
-    }
-  }
-}
 
 void loop()
 {
@@ -197,7 +157,7 @@ void loop()
 
  String wlval = TangkapNilaiSensor(distance);
  
- automatisasi(30, 30); //contoh pemanggilan function otomatisasi nilai float WL, nilai Float Temp
+ automatisasi(20, 25); //contoh pemanggilan function otomatisasi nilai float WL, nilai Float Temp
  
  if (IsConnect)
  {
@@ -206,16 +166,85 @@ void loop()
 //    KirimSocket("temp", temp);
 //    KirimSocket("hum", hum);
 //    KirimSocket("tds", tdsVal);
-//    KirimSocket("wl", kalibrasiWl(float(wlval)));
+//    KirimSocket("wl", kalibrasiWl(distance)));
    //
-   //      KirimSocket("temp", "30");
-   //      KirimSocket("hum", "70");
-   //      KirimSocket("tds", "1000");
-	//	 KirimSocket("wl", kalibrasiWl(float(random(1,100))));
+//        KirimSocket("temp", String(random(27,28)));
+//        KirimSocket("hum", String(random(66,70)));
+//        KirimSocket("tds", "1000");
+//        KirimSocket("wl", kalibrasiWl(float(random(1,100))));
+        KirimSocket("temp", "27");
+        KirimSocket("hum", String(random(66,70)));
+        KirimSocket("tds", "1000");
+        KirimSocket("wl", "20");
    //
  }
  
-  delay(1000);
+  delay(1500);
+}
+
+
+//function automatisasi
+void automatisasi(float nilaiWl, float nilaiTemp)
+{
+  Serial.println(String(RelayStatus1));
+  Serial.println(String(RelayStatus2));
+  Serial.println(String(Mode_Prototype));
+ 
+  if (Mode_Prototype)
+  {
+    modesekarang = 1;
+    if (nilaiWl <= NilaiWl)
+    {
+      if (!RelayStatus1)
+      {
+         Serial.println("Relay WL true!!\n");
+        JalankanRelay("true", "resWl", relay1);
+        RelayStatus1 = true;
+      }
+    }
+    else if (nilaiWl > NilaiWl)
+    {
+      if (RelayStatus1)
+      {
+        Serial.println("Relay WL false!!\n");
+        JalankanRelay("false", "resWl", relay1);
+        RelayStatus1 = false;
+      }
+    }
+    if (nilaiTemp>=NilaiTemp)
+    {
+       if (!RelayStatus2)
+      {
+        JalankanRelay("true", "resTemp", relay2);
+        RelayStatus2 = true;
+      }
+    }
+      else if (nilaiTemp<NilaiTemp)
+    {
+       if (RelayStatus2)
+      {
+        JalankanRelay("false", "resTemp", relay2);
+        RelayStatus2 = false;
+      }
+    }
+  }
+  else{
+    if(modesekarang == 0){
+       if (RelayStatus1)
+        {
+           Serial.println("Relay False!!\n");
+          JalankanRelay("false", "resWl", relay1);
+          RelayStatus1 = false;
+        }
+        if (RelayStatus2)
+        {
+           Serial.println("Relay False!!\n");
+          JalankanRelay("false", "resTemp", relay2);
+          RelayStatus1 = false;
+        }
+    }
+    modesekarang = 1;
+  }
 }
 
 int getMedianNum(int bArray[], int iFilterLen)
@@ -254,17 +283,42 @@ void konek(const char *payload, size_t length)
   IsConnect = true;
 }
 
+void GantiNilaiWl(const char *payload, size_t length)
+{
+  String StringN = String(payload);
+  NilaiWl = StringN.toInt();
+}
+void GantiNilaiTemp(const char *payload, size_t length)
+{
+  String StringN = String(payload);
+  NilaiTemp = StringN.toInt();
+}
+
+
 void JalankanRelay(const char *payload, String NamaSocket, uint8_t pin)
 {
   String value = String(payload);
+  
   if (value == "true")
   {
     digitalWrite(pin, LOW);
     KirimSocket(NamaSocket, "true");
     Serial.println("its true");
+    if(NamaSocket == "resWl"){
+      RelayStatus1 = true;
+    }
+    else{
+     RelayStatus2 = true;
+    }
   }
   else
   {
+    if(NamaSocket == "resWl"){
+      RelayStatus1 = false;
+    }
+    else{
+     RelayStatus2 = false;
+    }
     digitalWrite(pin, HIGH);
     KirimSocket(NamaSocket, "false");
     Serial.println("its false");
@@ -274,12 +328,26 @@ void JalankanRelay(const char *payload, String NamaSocket, uint8_t pin)
 void RelayWl(const char *payload, size_t length)
 {
   Serial.println(payload);
+  if(payload == "true"){
+     RelayStatus1 = true;
+  }
+  else{
+    RelayStatus1 = false;
+  }
+ 
   JalankanRelay(payload, "resWl", relay1);
 }
 
 void RelayTemp(const char *payload, size_t length)
 {
   Serial.println(payload);
+  if(payload == "true"){
+     RelayStatus2 = true;
+  }
+  else{
+    RelayStatus2 = false;
+  }
+ 
   JalankanRelay(payload, "resTemp", relay2);
 }
 
@@ -295,14 +363,15 @@ void GantiMode(const char *payload, size_t length)
   String stat;
   bool statz;
     if(value  == "true"){
-        stat = "false";
-        statz = false;
+        stat = "true";
+        statz = true;
      }
      else{
-       stat = "true";
-       statz = true;
+       stat = "false";
+       statz = false;
+       modesekarang = 0;
      }
-    KirimSocket("ModeProto",value);
+    KirimSocket("ModeProto",stat);
 
   Mode_Prototype = statz;
   Serial.println("mode saat ini\n");
@@ -337,11 +406,33 @@ String TangkapNilaiSensor(float sensor)
 
 void SetupRelayAplikasi()
 {
-  KirimSocket("resTemp", String(RelayStatus2));
-  KirimSocket("resHum", "false");
-  KirimSocket("resTds", "false");
-  KirimSocket("resWl", String(RelayStatus1));
-  KirimSocket("ProtoMode", String(Mode_Prototype));
+  String status1;
+  String status2;
+  String modeP;
+  if(!RelayStatus1){
+    status1 = "true";
+  }
+  else{
+    status1 = "false";
+  }
+  
+    if(!RelayStatus2){
+    status2 = "true";
+  }
+  else{
+    status2 = "false";
+  }
+  if(Mode_Prototype){
+    modeP = "true";
+  }
+  else{
+    modeP = "false";
+  }
+//  KirimSocket("resTemp", status2); 
+//  KirimSocket("resWl", status1);
+JalankanRelay(status2.c_str(),"resTemp",relay2);
+JalankanRelay(status1.c_str(),"resWl",relay1);
+   KirimSocket("ModeProto",modeP);
 }
 
 
